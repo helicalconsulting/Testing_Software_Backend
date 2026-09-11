@@ -109,16 +109,21 @@ public class IssueController {
 
             existing.setUpdatedAt(Instant.now().toString());
             return ResponseEntity.ok(issueRepository.save(existing));
-        }).orElse(ResponseEntity.notFound().build());
+        }).orElseGet(() -> {
+            updateData.setId(id);
+            String now = Instant.now().toString();
+            if (updateData.getCreatedAt() == null) updateData.setCreatedAt(now);
+            updateData.setUpdatedAt(now);
+            return ResponseEntity.ok(issueRepository.save(updateData));
+        });
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteIssue(@PathVariable String id) {
         if (issueRepository.existsById(id)) {
             issueRepository.deleteById(id);
-            return ResponseEntity.ok(Map.of("success", true));
         }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(Map.of("success", true));
     }
 
     @PostMapping("/bulk-status")

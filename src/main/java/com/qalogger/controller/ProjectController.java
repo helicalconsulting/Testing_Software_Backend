@@ -74,7 +74,22 @@ public class ProjectController {
             }
             existing.setUpdatedAt(Instant.now().toString());
             return ResponseEntity.ok(projectRepository.save(existing));
-        }).orElse(ResponseEntity.notFound().build());
+        }).orElseGet(() -> {
+            // Upsert: Create project if it doesn't exist in DB yet
+            project.setId(id);
+            if (project.getName() == null || project.getName().isBlank()) {
+                project.setName("New Project");
+            }
+            if (project.getPrefix() == null || project.getPrefix().isBlank()) {
+                project.setPrefix("QA");
+            }
+            String now = Instant.now().toString();
+            if (project.getCreatedAt() == null) {
+                project.setCreatedAt(now);
+            }
+            project.setUpdatedAt(now);
+            return ResponseEntity.ok(projectRepository.save(project));
+        });
     }
 
     @DeleteMapping("/{id}")
@@ -83,8 +98,7 @@ public class ProjectController {
         if (projectRepository.existsById(id)) {
             issueRepository.deleteByProjectId(id);
             projectRepository.deleteById(id);
-            return ResponseEntity.ok(Map.of("success", true));
         }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(Map.of("success", true));
     }
 }
